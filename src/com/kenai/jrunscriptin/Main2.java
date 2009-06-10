@@ -15,44 +15,28 @@ import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
 import java.net.URI;
 public class Main2 {
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
+        if (args.length != 1) {
             System.err.println("Usage:");
-            System.err.println("  java -jar jrunscriptin.jar <PID> <JavaScript>");
+            System.err.println("  echo <JavaScript> | java -jar jrunscriptin.jar <PID>");
             System.err.println("    where <PID> is as in jps");
-            System.err.println("  java -jar jrunscriptin.jar <match> <JavaScript>");
+            System.err.println("  echo <JavaScript> | java -jar jrunscriptin.jar <match>");
             System.err.println("    where <match> is some substring of the text after a PID visible in jps -lm");
             System.err.println("Example using NetBeans IDE (quoting as in Bourne Shell, adapt as needed):");
-            System.err.println("  java -jar jrunscriptin.jar netbeans 'Packages.org.openide.awt.StatusDisplayer.getDefault().setStatusText(\"Hello from abroad!\"); java.lang.System.out.println(\"OK!\")'");
+            System.err.println("  echo 'Packages.org.openide.awt.StatusDisplayer.getDefault().setStatusText(\"Hello from abroad!\"); java.lang.System.out.println(\"OK!\")' | java -jar jrunscriptin.jar netbeans");
             System.err.println("Requires Mustang (JDK 6) for both this tool and the target VM.");
             System.exit(2);
         }
         String vmid = args[0];
-        String expr = args[1];
         File self = new File(URI.create(Main.class.getProtectionDomain().getCodeSource().getLocation().toExternalForm()));
-        File selfCopy = File.createTempFile("jrunscriptin", ".jar");
-        selfCopy.deleteOnExit();
-        InputStream is = new FileInputStream(self);
-        try {
-            OutputStream os = new FileOutputStream(selfCopy);
-            try {
-                byte[] buf = new byte[4096];
-                int read;
-                while ((read = is.read(buf)) != -1) {
-                    os.write(buf, 0, read);
-                }
-            } finally {
-                os.close();
-            }
-        } finally {
-            is.close();
-        }
         VirtualMachine m;
         try {
             m = VirtualMachine.attach(vmid);
@@ -77,24 +61,46 @@ public class Main2 {
             }
             m = VirtualMachine.attach(match);
         }
-        System.err.println("Attaching to " + m.id() + "...");
-        File data = File.createTempFile("jrunscriptin", ".dat");
-        data.deleteOnExit();
-        data.delete();
-        m.loadAgent(selfCopy.getAbsolutePath(), data.getAbsolutePath() + File.pathSeparatorChar + expr);
-        if (!data.isFile()) {
-            System.err.println("Script did not execute");
-            System.exit(2);
-        }
-        //System.err.println("Got data of length " + data.length());
-        is = new FileInputStream(data);
-        try {
-            int c;
-            while ((c = is.read()) != -1) {
-                System.out.write(c);
+        final ServerSocket socket = new ServerSocket();
+        socket.bind(null);
+        int port = socket.getLocalPort();
+        new Thread() {
+            public @Override void run() {
+                try {
+                    final Socket conn = socket.accept();
+                    //System.err.println("got connection");
+                    new Thread() {
+                        public @Override void run() {
+                            try {
+                                OutputStream os = conn.getOutputStream();
+                                byte[] buf = new byte[4096];
+                                int read;
+                                while ((read = System.in.read(buf)) != -1) {
+                                    os.write(buf, 0, read);
+                                    os.flush();
+                                }
+                            } catch (IOException x) {
+                                x.printStackTrace();
+                            }
+                            //System.err.println("done");
+                            System.exit(0);
+                        }
+                    }.start();
+                    InputStream is = conn.getInputStream();
+                    byte[] buf = new byte[4096];
+                    int read;
+                    try {
+                        while ((read = is.read(buf)) != -1) {
+                            System.out.write(buf, 0, read);
+                        }
+                    } catch (SocketException x) {}
+                } catch (Exception x) {
+                    x.printStackTrace();
+                }
             }
-        } finally {
-            is.close();
-        }
+        }.start();
+        System.err.println("Attaching to " + m.id()/* + " with callback to port " + port*/ + "...");
+        m.loadAgent(self.getAbsolutePath(), Integer.toString(port));
+        //System.err.println("loaded agent");
     }
 }

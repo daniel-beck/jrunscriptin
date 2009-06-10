@@ -11,37 +11,40 @@
  * Microsystems, Inc. All Rights Reserved.
  */
 package com.kenai.jrunscriptin;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.net.InetAddress;
+import java.net.Socket;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 public class Agent {
     public static void agentmain(String options) throws Exception {
-        int nul = options.indexOf(File.pathSeparatorChar);
-        File data = new File(options.substring(0, nul));
-        String expr = options.substring(nul + 1);
-        OutputStream os = new FileOutputStream(data);
-        try {
-            PrintStream ps = new PrintStream(os, true);
-            ScriptEngine engine = new ScriptEngineManager().getEngineByName("javascript");
-            ScriptContext context = engine.getContext();
-            OutputStreamWriter w = new OutputStreamWriter(ps);
-            context.setWriter(w);
-            context.setErrorWriter(w);
+        int port = Integer.parseInt(options);
+        //System.err.println("connecting to " + port);
+        Socket s = new Socket(InetAddress.getLocalHost(), port);
+        //System.err.println("got connection on " + port);
+        BufferedReader r = new BufferedReader(new InputStreamReader(s.getInputStream(), "UTF-8"));
+        OutputStream os = s.getOutputStream();
+        OutputStreamWriter w = new OutputStreamWriter(os);
+        ScriptEngine engine = new ScriptEngineManager().getEngineByName("javascript");
+        ScriptContext context = engine.getContext();
+        context.setWriter(w);
+        context.setErrorWriter(w);
+        String expr;
+        while ((expr = r.readLine()) != null) {
             try {
-                engine.eval(expr);
+                w.write(String.valueOf(engine.eval(expr)));
+                w.write('\n');
             } catch (ScriptException e) {
-                e.printStackTrace(ps);
+                e.printStackTrace(new PrintStream(os, true));
             } finally {
                 w.flush();
             }
-        } finally {
-            os.close();
         }
     }
 }

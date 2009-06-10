@@ -5,6 +5,29 @@
         <j2seproject1:jar manifest="${manifest.file}"/>
     </target>
     <target name="run" depends="jar">
-        <fail>Not supported</fail>
+        <!-- Make a simple test case. -->
+        <echo file="${java.io.tmpdir}/JRSDemo.java"><![CDATA[
+            public class JRSDemo {
+                private static int counter;
+                public static void main(String[] args) throws Exception {
+                    System.err.println("JRSDemo start");
+                    for (int i = 0; i < 10; i++) {
+                        counter = i;
+                        Thread.sleep(200);
+                    }
+                    System.err.println("JRSDemo end");
+                }
+                public static int getCounter() {
+                    return counter;
+                }
+            }
+        ]]></echo>
+        <javac srcdir="${java.io.tmpdir}" destdir="${java.io.tmpdir}" includes="JRSDemo.java"/>
+        <parallel>
+            <java classpath="${java.io.tmpdir}" classname="JRSDemo" fork="true"/>
+            <java jar="${dist.jar}" fork="true" inputstring="java.lang.System.out.println(Packages.JRSDemo.getCounter())&#10;">
+                <arg value="JRSDemo"/>
+            </java>
+        </parallel>
     </target>
 </project>
