@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="jrunscriptin" default="default" basedir="." xmlns:j2seproject1="http://www.netbeans.org/ns/j2se-project/1">
+    <import file="nbproject/build-impl.xml"/>
+    <target name="jar" depends="compile,-pre-pre-jar,-pre-jar">
+        <j2seproject1:jar manifest="${manifest.file}"/>
+    </target>
+    <target name="run" depends="jar">
+        <fail>Not supported</fail>
+    </target>
+</project>
