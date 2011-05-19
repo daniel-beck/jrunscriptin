@@ -31,8 +31,8 @@ public class Main2 {
             System.err.println("  echo <JavaScript> | java -jar jrunscriptin.jar <match>");
             System.err.println("    where <match> is some substring of the text after a PID visible in jps -lm");
             System.err.println("Example using NetBeans IDE (quoting as in Bourne Shell, adapt as needed):");
-            System.err.println("  echo 'Packages.org.openide.awt.StatusDisplayer.getDefault().setStatusText(\"Hello from abroad!\"); java.lang.System.out.println(\"OK!\")' | java -jar jrunscriptin.jar netbeans");
-            System.err.println("Requires Mustang (JDK 6) for both this tool and the target VM.");
+            System.err.println("  echo 'org.openide.awt.StatusDisplayer.getDefault().statusText = \"Hello from abroad!\"' | java -jar jrunscriptin.jar netbeans");
+            System.err.println("Requires JDK 6+ for both this tool and the target VM.");
             System.exit(2);
         }
         String vmid = args[0];
