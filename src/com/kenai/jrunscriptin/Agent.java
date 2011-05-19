@@ -18,6 +18,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.Arrays;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -38,7 +39,17 @@ public class Agent {
         String expr;
         while ((expr = r.readLine()) != null) {
             try {
-                w.write(String.valueOf(engine.eval(expr)));
+                Object obj = engine.eval(expr);
+                String toS;
+                if (obj == null) {
+                    continue;
+                } else if (obj instanceof Object[]) {
+                    toS = Arrays.toString((Object[]) obj);
+                    // XXX also handle primitive arrays
+                } else {
+                    toS = String.valueOf(obj);
+                }
+                w.write(toS);
                 w.write('\n');
             } catch (ScriptException e) {
                 e.printStackTrace(new PrintStream(os, true));
