@@ -33,6 +33,7 @@ public class Agent {
         OutputStream os = s.getOutputStream();
         OutputStreamWriter w = new OutputStreamWriter(os);
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("javascript");
+        engine.eval("importPackage(java.lang)");
         ScriptContext context = engine.getContext();
         context.setWriter(w);
         context.setErrorWriter(w);
