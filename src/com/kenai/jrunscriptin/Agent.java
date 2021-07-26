@@ -33,30 +33,32 @@ public class Agent {
         OutputStream os = s.getOutputStream();
         OutputStreamWriter w = new OutputStreamWriter(os);
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("javascript");
-        engine.eval("importPackage(java.lang)");
         ScriptContext context = engine.getContext();
         context.setWriter(w);
         context.setErrorWriter(w);
-        String expr;
-        while ((expr = r.readLine()) != null) {
-            try {
-                Object obj = engine.eval(expr);
-                String toS;
-                if (obj == null) {
-                    continue;
-                } else if (obj instanceof Object[]) {
-                    toS = Arrays.toString((Object[]) obj);
-                    // XXX also handle primitive arrays
-                } else {
-                    toS = String.valueOf(obj);
-                }
-                w.write(toS);
-                w.write('\n');
-            } catch (ScriptException e) {
-                e.printStackTrace(new PrintStream(os, true));
-            } finally {
-                w.flush();
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = r.readLine()) != null) {
+            sb.append(line).append("\n");
+        }
+        String expr = sb.toString();
+        try {
+            Object obj = engine.eval(expr);
+            String toS;
+            if (obj == null) {
+                return;
+            } else if (obj instanceof Object[]) {
+                toS = Arrays.toString((Object[]) obj);
+                // XXX also handle primitive arrays
+            } else {
+                toS = String.valueOf(obj);
             }
+            w.write(toS);
+            w.write('\n');
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        } finally {
+            w.flush();
         }
     }
 }
